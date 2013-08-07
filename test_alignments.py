@@ -31,13 +31,13 @@ class TestEM():
 
         assert make_lexicon(fake_sentences) == fake_lex
 
-'''def test_initialization():
+    def test_initialization(self):
 #Will this take for fucking ever?
-    T = initialization_IMB1()
-    print len(eng_lex)
-    print len(spa_lex)
-    comp = T.values()[1]
-    print comp
-    #for item in T.keys:
-        #assert comp == T[item]'''
- 
+        lex1 = {'a','b', 'c', 'd', 'e', 'f'}
+        lex2 = {'g','h','i','j','k','l','m','n','o'}
+        T = initialization_IMB1(lex1, lex2)
+        comp = T.values()[0]
+        for item in T.keys():
+            assert comp == T[item]
+        assert len(T) == 54
+     
