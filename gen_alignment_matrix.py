@@ -9,53 +9,64 @@ from collections import defaultdict
 '''Initialization methods'''
 def get_sents(filename):
     with open(filename) as f:
-        return f.readlines()
+        lines = f.readlines()
+        return[line.split() for line in lines]
 
 def make_lexicon(sentences):
     lex = set()
     for sent in sentences:
-        for word in sent.split():
+        for word in sent:
             lex.add(word)
     return lex
 
 def initialization_IMB1(eng_lex, spa_lex):
-    T = defaultdict(float)
+    T = defaultdict(dict)
+    eng_lex = list(eng_lex)
+    spa_lex = list(spa_lex)
+    eng_lex.sort()
+    eng_lex.sort()
     for eng in eng_lex:
         for spa in spa_lex:
-            print spa, eng
-            T[(spa, eng)] = 1.0/len(eng_lex)
+            print eng, spa
+            T[eng][spa] =1.0/len(eng_lex)
 
     return T
 #k is the sentence pair index. i is the foreign word index. j is the english word index. Gotta search over every english word and add up the probaiblities of the foreign word being translated from that english word. 
 
-def delta(k, i, j, T):
-    spa_word = spa_sents[i]
-    numerator = T(spa_word, eng_sents[j])
-    denominator = sum([T[(spa_word, eng_word)] for eng_word in eng_sents[k]])
-    return numerator/denominator
+def delta(k, i, j, T, engs, spas):
+    spa_word = spas[k][i]
+    eng_word = engs[k][j]
+    num = T[eng_word][spa_word]
+    denom = sum(T[eng_word].values())
+    return num/denom
+
 
 #So the formula puts the t in terms of t(f|e), but it's c(e_j^(k), f_i^(k)) 
-def gen_expected_counts(c_s_given_e, c_e):
+def gen_expected_counts(C_SE, C_E, T, eng_sents, spa_sents):
 #These dictionaries are actually immutable
-    for k in xrange(length):
-        for word_i in eng_sents[k].split():
-            for word_j in spa_sents[k].split(): #What do we do with the commas? Do we count them?
-                c_s_given_e[(word_i, word_j)] = c_e[(i, j)] + delta(k, i, j)
-                c_e[word_j] = c_e[word_j] + delta(k, i, j)
+    for k in xrange(len(eng_sents)):
+        for wi in spa_sents[k]:
+            for wj in eng_sents[k]: 
+                C_SE[wj][wi] = C_SE[wj] + delta(k, i, j, T, eng_sents, spa_sents)
+                C_E[wj] = C_E[wj] + delta(k, i, j, T, eng_sents, spa_sents)
 
 
 def update_t(eng_lex, spa_lex, T):
     for eword in eng_lex:
         for sword in spa_lex:
-            T[(eword, sword)] = c_s_given_e(eword, sword)/c_e(eword)
+            T[eword][sword] = c_s_given_e(eword, sword)/c_e(eword)
    #I need to do this for ALL possible foreign and english words? So I probably want to compile all of the words, and then go through both initializing parameters in a giant for loop/dict comprehension
 
 
-def iterate_EM_algo(niters):
+def iterate_EM_algo(niters, T, eng_sents, spa_sents, eng_lex, spa_lex):
+
+    C_E = defaultdict(float)
+    C_SE = defaultdict(float)
+
 
     for i in xrange(niters):
-        gen_expected_counts()
-        update_t()
+        gen_expected_counts(C_SE, C_E, T, eng_sents, spa_sents)
+        update_t(eng_lex, spa_lex, T)
 
 '''Looks like we should put the dev analysis and printing in a different file or class'''
 
@@ -70,8 +81,6 @@ let's just do another default dict for T'''
 
 if __name__ == '__main__':
     
-    c_e = defaultdict(float)
-    c_s_given_e = defaultdict(float)
 
 
     english_file = 'corpus.en'
@@ -82,3 +91,6 @@ if __name__ == '__main__':
     spa_lex = make_lexicon(spa_sents)
 
     T = initialization_IMB1(eng_lex, spa_lex)
+
+    iterate_EM_algo(1, T, eng_sents, spa_sents, eng_lex, spa_lex)
+

@@ -18,26 +18,35 @@ class TestEM():
         out = get_sents('ex.txt')
 
         assert len(out) == 100
-        assert out[1] == 'bananas apples\n'
-        assert out[1].split()[1] == 'apples'
-        assert len(out[1].split()) == 2
+        assert out[1] == ['bananas', 'apples']
+        assert len(out[1]) == 2
 
     def test_make_lexicon(self):
-        fake_sentences = ['i have a kiwi .',
-                          'his name name is steve .',
-                          'hacker school has lots of people , and i am one of them .']
+        fake_sentences = [['i', 'have', 'a', 'kiwi', '.'],
+                          ['his', 'name', 'name', 'is', 'steve', '.'],
+                          ['hacker', 'school', 'has', 'lots', 'of','people', ',', 'and', 'i', 'am', 'one', 'of', 'them','.']]
         fake_lex = {'i', 'have', 'a', 'kiwi','.','his','name','is','steve','hacker','school',
                     'has','lots','of','people','and','am','one','them',','}
 
         assert make_lexicon(fake_sentences) == fake_lex
 
-    def test_initialization(self):
-#Will this take for fucking ever?
-        lex1 = {'a','b', 'c', 'd', 'e', 'f'}
-        lex2 = {'g','h','i','j','k','l','m','n','o'}
+    def test_initialization(self, T):
+        comp = T['a']['h']
+        for item1 in T.keys():
+            for item2 in T[item1].keys():
+                assert comp == T[item1][item2]
+    
+    @pytest.fixture
+    def T(self):
+        self.lex1 = {'a','b', 'c', 'd', 'e', 'f'}
+        self.lex2 = {'g','h','i','j','k','l','m','n','o'}
         T = initialization_IMB1(lex1, lex2)
-        comp = T.values()[0]
-        for item in T.keys():
-            assert comp == T[item]
-        assert len(T) == 54
-     
+        return T
+
+    def test_delta(self,T):
+        sents1 =['f','a','b','c','d','e']
+        sents2 =['h','h','h','g','k','k']
+
+        assert delta(0, 0, 0, T, sents1, sents2) == 1.0/9
+       
+   # def test_count_generator(self, T)
