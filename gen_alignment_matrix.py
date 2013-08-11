@@ -8,103 +8,135 @@ import json
 
 
 '''Initialization methods'''
-def get_sents(filename):
-    with open(filename) as f:
-        lines = f.readlines()
-        return[line.split() for line in lines]
 
-def make_lexicon(sentences):
-    lex = set()
-    for sent in sentences:
-        for word in sent:
-            lex.add(word)
-    return lex
+    
+class EMFromTest():
+    
+    def __init__(english_file, spanish_file, dbname):
 
-def initialization_IMB1(eng_lex, spa_lex):
-    T = defaultdict(dict)
-    eng_lex = list(eng_lex)
-    spa_lex = list(spa_lex)
-    eng_lex.sort()
-    eng_lex.sort()
-    for eng in eng_lex:
-        print eng
-        for spa in spa_lex:
-            T[eng][spa] =1.0/len(eng_lex)
+        self.CON = sqlite3.connect(dbname)
+        self.CUR = sqlite3.cursor()
+        self.eng_sents = self.get_sents(english_file)
+        self.spa_sents = self.get_sents(spanish_file)
+        self.eng_lex = self.make_lexicon(eng_sents)
+        self.spa_lex = self.make_lexicon(spa_sents)
 
-    return T
+
+    def get_sents(self, filename):
+        with open(filename) as f:
+            lines = f.readlines()
+            return[line.split() for line in lines]
+
+    def make_lexicon(self, sentences):
+        lex = set()
+        for sent in sentences:
+            for word in sent:
+                lex.add(word)
+        return lex
+
+    def initialization_IMB1(self):
+        eng_lex = list(self.eng_lex)
+        spa_lex = list(self.spa_lex)
+        eng_lex.sort()
+        eng_lex.sort()
+#Make these global variables probably 
+        self.CUR.execute("CREATE TABLE t (English TEXT, Spanish TEXT, prob NUMERIC DEFAULT 0, \
+                PRIMARY KEY (English, Spanish));")
+        self.CUR.execute("CREATE TABLE cse (English TEXT, Spanish TEXT, counts NUMERIC DEFAULT 0, \
+                PRIMARY KEY (English, Spanish));")
+        self.CUR.execute("CREATE TEABLE ce (English TEXT PRIMARY KEY, coutns NUMERIC DEFAULT 0);")
+        CON.commit()
+
+        for eng in eng_lex:
+            print eng
+            for spa in spa_lex:
+                insert_T(eng, spa, 1.0/len(eng_lex))
+                insert_cse(eng, spa, 0)
+                insert_cse(eng, spa, 0)
+
+        return T
+
+    def insert_T(self, eng, spa, prob):
+        self.CUR.execute("INSERT INTO t (?, ?, ?);", (eng, spa, prob))
+
+    def get_T(self, eng, spa):
+        self.CUR.execute('SELECT prob FROM t WHERE English=? AND Spanish=?;', (eng, spa))
+        result = self.CUR.fetchone()
+        return result[0]
+
+    def update_T(self, eng, spa, prob):
+        self.CUR.execute('UPDATE t SET prob=? WHERE English=? AND Spanish=?;', (prob, eng, spa)) 
+
+    def insert_cse(self, eng, spa, count):
+        self.CUR.execute("INSERT INTO cse (?, ?, ?);", (eng, spa, count))
+        #Commit or something?
+
+    def get_cse(self, eng, spa):
+        self.CUR.execute('SELECT count FROM cse WHERE English=? AND Spanish=?;', (eng, spa))
+        result = self.CUR.fetchone()
+        return result[0]
+
+    def update_cse(self, eng, spa, count):
+        self.CUR.execute('UPDATE cse SET count=? WHERE English=? AND Spanish=?;', (count, eng, spa))
+
+    def get_ce(self, eng):
+        self.CUR.execute('SELECT count FROM ce WHERE English=?;', (eng,))
+        result = self.CUR.fetchone()
+        return result[0]
+
+    def insert_ce(self, eng, count):
+        self.CUR.execute('INSERT INTO ce (?, ?);', (eng, count))
+
+    def update_ce(self, eng, count):
+        self.CUR.execute('UPDATE t SET count=? WHERE English=?;', (count, eng))
+        
 #k is the sentence pair index. i is the foreign word index. j is the english word index. Gotta search over every english word and add up the probaiblities of the foreign word being translated from that english word. 
 
-def delta(k, i, j, T, engs, spas):
+    def delta(self, k, i, j):
 
-    spa_word = spas[k][i]
-    eng_word = engs[k][j]
-    num = T[eng_word][spa_word]
-    denom = sum([T[eng][spa_word] in engs[k]])
+        spa_word = self.spa_sents[k][i]
+        eng_word = self.eng_sents[k][j]
+        num = self.get_T(eng_word,spa_word)
+        denom = sum([self.get_T(eng,spa_word) for eng in eng_sents[k]])
 
-    return num/denom
+        return num/denom
 
 
 #So the formula puts the t in terms of t(f|e), but it's c(e_j^(k), f_i^(k)) 
-def gen_expected_counts(C_SE, C_E, T, engs, spas):
+    def gen_expected_counts(self):
 #These dictionaries are actually immutable
-    for k in xrange(len(engs)):
-        print k
-        for i in xrange(len(spas[k])):
-            for j in xrange(len(engs[k])): 
-                C_SE[engs[k][j]][spas[k][i]] = C_SE[engs[k][j]][spas[k][i]] +\
-                        delta(k, i, j, T, eng_sents, spa_sents)
-                C_E[engs[k][j]] = C_E[spas[k][i]] + delta(k, i, j, T, eng_sents, spa_sents)
+        for k in xrange(len(self.eng_sents)):
+            spas = self.spa_sents
+            engs = self.eng_sents
+            print k
+            for i in xrange(len(spas[k])):
+                for j in xrange(len(engs[k])): 
+                    self.update_cse(engs[k][j],spas[k][i]) = self.get_cse(engs[k][j],\
+                            spas[k][i]) + self.delta(k, i, j)
+                    self.update_ce(engs[k][j]) = self.get_ce(engs[k][i]) + self.delta(k, i, j)
 
 
-def update_t(C_SE, C_E, eng_lex, spa_lex, T):
-    for eword in eng_lex:
-        print eword
-        for sword in spa_lex:
-            T[eword][sword] = C_SE(eword, sword)/C_E(eword)
-   #I need to do this for ALL possible foreign and english words? So I probably want to compile all of the words, and then go through both initializing parameters in a giant for loop/dict comprehension
+    def iterate_t(self):
+        for eword in self.eng_lex:
+            print eword
+            for sword in self.spa_lex:
+                self.update_T(eword,sword) = self.get_cse(eword, sword)/self.get_ce(eword)
+       #I need to do this for ALL possible freign and english words? So I probably want to compile all of the words, and then go through both initializing parameters in a giant for loop/dict comprehension
 
 
-def iterate_EM_algo(niters, T, eng_sents, spa_sents, eng_lex, spa_lex):
+    def iterate_EM_algo(self,niters):
 
-    C_E = defaultdict(dict)
-    C_SE = defaultdict(dict)
-
-    for eword in eng_lex:
-        print "c_e", eng_lex
-        for sword in spa_lex:
-            C_E[eword][sword] = 0
-            C_SE[eword][sword] = 0
+        for _ in xrange(niters):
+            self.gen_expected_counts()
+            self.update_t()
 
 
-    for _ in xrange(niters):
-        gen_expected_counts(C_SE, C_E, T, eng_sents, spa_sents)
-        update_t(eng_lex, spa_lex, T)
 
-def write_T_to_file(T, filename):
-    with open(filename) as f:
-        json.dumps(T, f)
-
-
-'''Looks like we should put the dev analysis and printing in a different file or class'''
-
-#Probability of generating a foreign word f (dest_word) from and english word e (source_word).
-#Possibilities for constructions: tuples of (spa_word, eng_word):probability. or spa_word:{engword:prob}
-
-'''So the things I need are a t, which keeps track of the probabilities of translating one word 
-into another. Should this be a sparse matrix? Or is he referring to the alignment matrices? Maybe
-let's just do another default dict for T'''
 
 if __name__ == '__main__':
     
-    english_file = 'corpus.en'
-    spanish_file = 'corpus.es'
-    eng_sents = get_sents(english_file)
-    spa_sents = get_sents(spanish_file)
-    eng_lex = make_lexicon(eng_sents)
-    spa_lex = make_lexicon(spa_sents)
 
-    T = initialization_IMB1(eng_lex, spa_lex)
-
+    em_test = EMFromTest('corpus.en', 'corpus.es', 'em_alignments.db')
     iterate_EM_algo(1, T, eng_sents, spa_sents, eng_lex, spa_lex)
 
     write_T_to_file(T, 'T.json')
