@@ -111,16 +111,16 @@ class EMFromTest():
             print k
             for i in xrange(len(spas[k])):
                 for j in xrange(len(engs[k])): 
-                    self.update_cse(engs[k][j],spas[k][i]) = self.get_cse(engs[k][j],\
-                            spas[k][i]) + self.delta(k, i, j)
-                    self.update_ce(engs[k][j]) = self.get_ce(engs[k][i]) + self.delta(k, i, j)
+                    self.update_cse(engs[k][j],spas[k][i], (self.get_cse(engs[k][j],\
+                            spas[k][i]) + self.delta(k, i, j)))
+                    self.update_ce(engs[k][j], (self.get_ce(engs[k][i]) + self.delta(k, i, j)))
 
 
     def iterate_t(self):
         for eword in self.eng_lex:
             print eword
             for sword in self.spa_lex:
-                self.update_T(eword,sword) = self.get_cse(eword, sword)/self.get_ce(eword)
+                self.update_T(eword, sword, self.get_cse(eword, sword)/self.get_ce(eword))
        #I need to do this for ALL possible freign and english words? So I probably want to compile all of the words, and then go through both initializing parameters in a giant for loop/dict comprehension
 
 
