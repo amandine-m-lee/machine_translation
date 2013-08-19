@@ -37,7 +37,7 @@ class TestEM():
                 assert comp == T[item1][item2]
     
     @pytest.fixture
-    def T(self):
+    def TCEETC(self):
         self.lex1 = {'a','b', 'c', 'd', 'e', 'f'}
         self.lex2 = {'g','h','i','j','k','l','m','n','o'}
         T = initialization_IMB1(lex1, lex2)
