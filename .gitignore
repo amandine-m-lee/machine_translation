@@ -1,5 +1,5 @@
 *\.sw*
 *.pyc
 venv
-\.bd.*
+^\.bd.*
 *\.db$
